@@ -17,6 +17,7 @@ Fine-tuning the library's seq2seq models for question answering using the 🤗 S
 """
 # You can also adapt this script on your own question answering task. Pointers for this are left as comments.
 
+import json
 import logging
 import os
 import sys
@@ -760,7 +761,14 @@ def main():
 
         trainer.log_metrics("predict", metrics)
         trainer.save_metrics("predict", metrics)
-
+        # Lưu danh sách câu trả lời dự đoán ra file generated_predictions.json
+        prediction_file = os.path.join(training_args.output_dir, "generated_predictions.json")
+        
+        # results.predictions chứa list các dict [{'id': '...', 'prediction_text': '...'}]
+        with open(prediction_file, "w", encoding="utf-8") as f:
+            json.dump(results.predictions, f, ensure_ascii=False, indent=4)
+            
+        logger.info(f"Save prediction file at: {prediction_file}")
     if training_args.push_to_hub:
         kwargs = {"finetuned_from": model_args.model_name_or_path, "tasks": "question-answering"}
         if data_args.dataset_name is not None:
