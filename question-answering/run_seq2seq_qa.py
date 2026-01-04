@@ -42,7 +42,7 @@ from transformers import (
 from transformers.trainer_utils import EvalLoopOutput, EvalPrediction
 from transformers.utils import check_min_version
 from transformers.utils.versions import require_version
-
+from text_preprocess import TextNormalize, convert_unicode
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
 check_min_version("4.57.0.dev0")
@@ -426,7 +426,69 @@ def main():
             raise ValueError(
                 f"--answer_column' value '{data_args.answer_column}' needs to be one of: {', '.join(column_names)}"
             )
+    logger.info("Starting dataset normalization...")
+    normalizer = TextNormalize()
+    normalizer.createVowelsTable() 
 
+    def preprocess_dataset_normalization(examples):
+        questions = examples[question_column]
+        contexts = examples[context_column]
+        answers = examples[answer_column] # Đây là list các dict: [{'text': [...], 'answer_start': [...]}, ...]
+        
+        new_questions = []
+        new_contexts = []
+        new_answers = []
+        
+        for q, c, ans in zip(questions, contexts, answers):
+            # 1. Chuẩn hóa Question
+            q = convert_unicode(q)
+            q = normalizer.normalize(q)
+            q = " ".join([normalizer.WordStandardized(word) for word in q.split()])
+            new_questions.append(q)
+            
+            # 2. Chuẩn hóa Context
+            c = convert_unicode(c)
+            c = normalizer.normalize(c)
+            c = " ".join([normalizer.WordStandardized(word) for word in c.split()])
+            new_contexts.append(c)
+            
+            # 3. Chuẩn hóa Answers (QUAN TRỌNG: Seq2Seq cần chuẩn hóa cả target)
+            # ans['text'] là một list các câu trả lời chấp nhận được (thường có 1 hoặc nhiều)
+            processed_ans_texts = []
+            for t in ans['text']:
+                t = convert_unicode(t)
+                t = normalizer.normalize(t)
+                t = " ".join([normalizer.WordStandardized(word) for word in t.split()])
+                processed_ans_texts.append(t)
+            
+            # Cập nhật lại list text trong object answer
+            ans['text'] = processed_ans_texts
+            new_answers.append(ans)
+            
+        examples[question_column] = new_questions
+        examples[context_column] = new_contexts
+        examples[answer_column] = new_answers
+        return examples
+
+    # Áp dụng map vào toàn bộ dataset
+    if "train" in raw_datasets:
+        raw_datasets["train"] = raw_datasets["train"].map(
+            preprocess_dataset_normalization, 
+            batched=True, 
+            desc="Normalizing Train Data"
+        )
+    if "validation" in raw_datasets:
+        raw_datasets["validation"] = raw_datasets["validation"].map(
+            preprocess_dataset_normalization, 
+            batched=True, 
+            desc="Normalizing Validation Data"
+        )
+    if "test" in raw_datasets:
+        raw_datasets["test"] = raw_datasets["test"].map(
+            preprocess_dataset_normalization, 
+            batched=True, 
+            desc="Normalizing Test Data"
+        )
     # Temporarily set max_answer_length for training.
     max_answer_length = data_args.max_answer_length
     padding = "max_length" if data_args.pad_to_max_length else False
