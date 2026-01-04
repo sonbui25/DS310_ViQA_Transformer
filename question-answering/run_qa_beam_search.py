@@ -409,10 +409,10 @@ def main():
             tokenized_examples["cls_index"].append(cls_index)
 
             # Grab the sequence corresponding to that example (to know what is the context and what is the question).
-            sequence_ids = tokenized_examples["token_type_ids"][i]
-            for k, s in enumerate(special_tokens[i]):
-                if s:
-                    sequence_ids[k] = 3
+            sequence_ids = tokenized_examples.sequence_ids(i)
+            # for k, s in enumerate(special_tokens[i]):
+            #     if s:
+            #         sequence_ids[k] = 3
             context_idx = 1 if pad_on_right else 0
 
             # Build the p_mask: non special tokens and context gets 0.0, the others get 1.0.
