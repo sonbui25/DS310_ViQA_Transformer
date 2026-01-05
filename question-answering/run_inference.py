@@ -264,12 +264,33 @@ def main():
                 )
             
             # Decode batch
-            answers = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-            print(answers)
-            # Lưu kết quả
-            for sample, answer in zip(batch_samples, answers):
-                predictions[sample['id']] = answer
+            # skip_special_tokens=True giúp loại bỏ các token như <s>, </s>
+            decoded_sequences = tokenizer.batch_decode(outputs, skip_special_tokens=True)
             
+            # --- BẮT ĐẦU PHẦN SỬA ĐỔI (XỬ LÝ HẬU KỲ) ---
+            for sample, raw_text in zip(batch_samples, decoded_sequences):
+                # Bước 1: Tách bỏ phần Prompt đầu vào
+                # Vì model Decoder-only trả về cả (Prompt + Câu trả lời), cắt ở chỗ "Trả lời:"
+                if "Trả lời:" in raw_text:
+                    # split(...) -> lấy phần tử cuối cùng [-1] tức là phần text sau chữ "Trả lời:"
+                    answer_part = raw_text.split("Trả lời:")[-1]
+                else:
+                    # Trường hợp hiếm gặp nếu model không generate đúng format
+                    answer_part = raw_text
+
+                # Bước 2: Chống lặp và cắt Hallucination
+                # Model thường xuống dòng (\n) sau khi trả lời xong.
+                # Nếu nó tiếp tục sinh ra "Câu hỏi:...", ta chỉ lấy dòng đầu tiên.
+                clean_answer = answer_part.split('\n')[0]
+                
+                # Bước 3: Xóa khoảng trắng thừa (whitespace) ở đầu và cuối
+                clean_answer = clean_answer.strip()
+
+                print(f"ID: {sample['id']} | Clean: '{clean_answer}'")
+
+                # Lưu vào dict kết quả
+                predictions[sample['id']] = clean_answer
+                        
             pbar.update(len(batch_samples))
 
     # 4. Save Results
