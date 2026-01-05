@@ -101,6 +101,7 @@ def parse_args():
     parser.add_argument("--cache_dir", type=str, default=None, help="Thư mục cache model (tùy chọn)")
     parser.add_argument("--auth_token", type=str, default=None, help="HF token nếu model yêu cầu quyền truy cập")
     parser.add_argument("--trust_remote_code", action="store_true", help="Cho phép load code tùy chỉnh của model")
+    parser.add_argument("--multi_gpu", action="store_true", help="Sử dụng DataParallel cho nhiều GPU")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     
     return parser.parse_args()
@@ -158,6 +159,15 @@ def main():
         ).to(args.device)
     
     model.eval()
+    
+    # Wrap với DataParallel nếu có multiple GPU
+    if args.multi_gpu and torch.cuda.device_count() > 1:
+        print(f"  → Sử dụng {torch.cuda.device_count()} GPU với DataParallel")
+        model = torch.nn.DataParallel(model)
+    elif torch.cuda.is_available():
+        print(f"  → Sử dụng 1 GPU: {torch.cuda.get_device_name(0)}")
+    else:
+        print(f"  → Sử dụng CPU")
 
     # 2. Load Data
     print(f"Đang đọc dữ liệu từ {args.test_file}...")
@@ -234,19 +244,18 @@ def main():
                 padding=True
             ).to(args.device)
             
-            # Generate batch
+            # Generate batch (greedy decoding - nhanh hơn beam search)
             with torch.no_grad():
                 outputs = model.generate(
                     inputs.input_ids,
                     attention_mask=inputs.attention_mask,
                     max_new_tokens=args.max_new_tokens,
-                    num_beams=2,
-                    early_stopping=True
+                    do_sample=False,
+                    eos_token_id=[tokenizer.eos_token_id, tokenizer.convert_tokens_to_ids("\n")]
                 )
             
             # Decode batch
             answers = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-            print(answers)
             # Lưu kết quả
             for sample, answer in zip(batch_samples, answers):
                 predictions[sample['id']] = answer
