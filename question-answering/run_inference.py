@@ -2,7 +2,7 @@ import argparse
 import json
 import torch
 import os
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForCausalLM, AutoConfig
 from tqdm import tqdm
 
 # ==============================================================================
@@ -116,8 +116,24 @@ def main():
 
     # 1. Load Model
     print("Đang tải model...")
+    
+    # Tự động detect loại model (Seq2Seq hay CausalLM)
+    config = AutoConfig.from_pretrained(args.model_name)
+    is_encoder_decoder = getattr(config, 'is_encoder_decoder', False)
+    
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
-    model = AutoModelForSeq2SeqLM.from_pretrained(args.model_name).to(args.device)
+    
+    # Đảm bảo tokenizer có pad token (cần cho batching)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    
+    if is_encoder_decoder:
+        print(f"  → Loại model: Encoder-Decoder (Seq2Seq)")
+        model = AutoModelForSeq2SeqLM.from_pretrained(args.model_name).to(args.device)
+    else:
+        print(f"  → Loại model: Decoder-only (CausalLM)")
+        model = AutoModelForCausalLM.from_pretrained(args.model_name).to(args.device)
+    
     model.eval()
 
     # 2. Load Data
