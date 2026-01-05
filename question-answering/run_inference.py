@@ -141,6 +141,9 @@ def main():
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     
+    # Chuẩn bị device_map cho multi-GPU
+    device_map = "auto" if args.multi_gpu and torch.cuda.device_count() > 1 else None
+    
     if is_encoder_decoder:
         print(f"  → Loại model: Encoder-Decoder (Seq2Seq)")
         model = AutoModelForSeq2SeqLM.from_pretrained(
@@ -148,7 +151,10 @@ def main():
             cache_dir=args.cache_dir,
             token=args.auth_token,
             trust_remote_code=args.trust_remote_code,
-        ).to(args.device)
+            device_map=device_map,
+        )
+        if device_map is None:
+            model = model.to(args.device)
     else:
         print(f"  → Loại model: Decoder-only (CausalLM)")
         model = AutoModelForCausalLM.from_pretrained(
@@ -156,15 +162,17 @@ def main():
             cache_dir=args.cache_dir,
             token=args.auth_token,
             trust_remote_code=args.trust_remote_code,
-        ).to(args.device)
+            device_map=device_map,
+        )
+        if device_map is None:
+            model = model.to(args.device)
     
     model.eval()
     
-    # Wrap với DataParallel nếu có multiple GPU
-    model_for_generate = model  # reference để gọi generate
-    if args.multi_gpu and torch.cuda.device_count() > 1:
-        print(f"  → Sử dụng {torch.cuda.device_count()} GPU với DataParallel")
-        model = torch.nn.DataParallel(model)
+    # Hiển thị thông tin GPU
+    if device_map == "auto":
+        print(f"  → Sử dụng {torch.cuda.device_count()} GPU với device_map='auto'")
+        print(f"  → Model đã được tự động chia ra các GPU")
     elif torch.cuda.is_available():
         print(f"  → Sử dụng 1 GPU: {torch.cuda.get_device_name(0)}")
     else:
@@ -247,7 +255,7 @@ def main():
             
             # Generate batch (greedy decoding - nhanh hơn beam search)
             with torch.no_grad():
-                outputs = model_for_generate.generate(
+                outputs = model.generate(
                     inputs.input_ids,
                     attention_mask=inputs.attention_mask,
                     max_new_tokens=args.max_new_tokens,
