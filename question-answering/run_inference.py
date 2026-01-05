@@ -265,6 +265,7 @@ def main():
             
             # Decode batch
             answers = tokenizer.batch_decode(outputs, skip_special_tokens=True)
+            print(answers)
             # Lưu kết quả
             for sample, answer in zip(batch_samples, answers):
                 predictions[sample['id']] = answer
