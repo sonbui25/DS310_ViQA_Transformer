@@ -18,7 +18,7 @@ Quy tắc bắt buộc:
 2. Nếu thông tin không có trong "Đoạn văn", hãy trả về chuỗi rỗng "" (không viết gì cả).
 3. Câu trả lời phải ngắn gọn và chính xác nhất được hiển thị trong đoạn văn về format và độ dài. Không cần lặp lại các từ trong câu hỏi để mở đầu câu trả lời mà hãy trả lời thẳng đáp án từ đoạn văn nếu có.
 4. Câu hỏi có thể hỏi ngoài lề, tuy có một số thông tin trong câu hỏi có thể liên quan đến đoạn văn nhưng KHÔNG PHẢI LÀ CÂU TRẢ LỜI. Hãy cẩn thận.
-5. Nếu như có thông tin trong đoạn văn chứng minh là câu hỏi sai, hãy trả về chuỗi rỗng, đừng cố gắng trả lời hay phủ định, phản bác câu hỏi nếu không có câu trả lời rõ ràng trong đoạn văn, tiêu chí cốt lõi là chỉ trả về câu trả lời dưới dạng đoạn văn bản được trích xuất từ đoạn văn gốc nếu nó có thể trả lời cho câu hỏi."""
+5. Tiêu chí cốt lõi là chỉ trả về câu trả lời dưới dạng đoạn văn bản được trích xuất từ đoạn văn gốc nếu nó có thể trả lời cho câu hỏi, không cần giải thích hay bình luận thêm gì cả."""
 
 # Dữ liệu Few-shot mẫu
 FEW_SHOT_EXAMPLES_DATA = [
@@ -201,7 +201,7 @@ def main():
             decoded_sequences = tokenizer.batch_decode(outputs, skip_special_tokens=True)
             
             for sample, raw_text in zip(batch_samples, decoded_sequences):
-                # --- LOGIC LÀM SẠCH KẾT QUẢ (CẬP NHẬT FIX LỖI "SYSTEM") ---
+                # LOGIC LÀM SẠCH KẾT QUẢ
                 
                 # 1. Tách phần prompt
                 if "assistant" in raw_text:
@@ -230,7 +230,7 @@ def main():
                 # Lưu kết quả
                 predictions[sample['id']] = clean_answer
                 
-                # In ra để kiểm tra (chỉ in nếu có đáp án để đỡ rối mắt)
+                # In ra để kiểm tra
                 # if clean_answer: 
                 print(f"ID: {sample['id']} | Ans : {clean_answer}")
                 
