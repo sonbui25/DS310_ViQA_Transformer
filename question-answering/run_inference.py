@@ -16,9 +16,8 @@ SYSTEM_INSTRUCTION = """Bạn là một hệ thống Đọc hiểu máy (Machine
 Quy tắc bắt buộc:
 1. Câu trả lời phải là một đoạn văn bản (span) được lấy NGUYÊN VĂN từ "Đoạn văn". Không được viết lại, thay đổi từ ngữ, hay thêm từ ngữ. Đặc biệt là các tên riêng hay thuật ngữ, số liệu, thời gian phải giữ nguyên.
 2. Nếu thông tin không có trong "Đoạn văn", hãy trả về chuỗi rỗng "" (không viết gì cả).
-3. Câu trả lời phải ngắn gọn và chính xác nhất được hiển thị trong đoạn văn về format và độ dài. Không cần lặp lại các từ trong câu hỏi để mở đầu câu trả lời mà hãy trả lời thẳng đáp án từ đoạn văn nếu có.
-4. Câu hỏi có thể hỏi ngoài lề, tuy có một số thông tin trong câu hỏi có thể liên quan đến đoạn văn nhưng KHÔNG PHẢI LÀ CÂU TRẢ LỜI. Hãy cẩn thận.
-5. Tiêu chí cốt lõi là chỉ trả về câu trả lời dưới dạng đoạn văn được trích xuất từ đoạn văn gốc nếu nó có thông tin để trả lời câu hỏi, không cần giải thích hay bình luận thêm gì cả."""
+3. Câu trả lời phải ngắn gọn và chính xác nhất được hiển thị trong đoạn văn về format và độ dài. Không cần lặp lại các từ trong câu hỏi để mở đầu câu trả lời mà hãy trả lời thẳng đáp án từ đoạn văn nếu có. Không thêm bất kỳ từ ngữ nào khác.
+4. Câu hỏi có thể hỏi ngoài lề, tuy có một số thông tin trong câu hỏi có thể liên quan đến đoạn văn nhưng KHÔNG PHẢI LÀ CÂU TRẢ LỜI. Hãy cẩn thận."""
 
 # Dữ liệu Few-shot mẫu
 FEW_SHOT_EXAMPLES_DATA = [
