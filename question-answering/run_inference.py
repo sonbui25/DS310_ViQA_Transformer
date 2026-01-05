@@ -17,7 +17,7 @@ Quy tắc bắt buộc:
 1. Câu trả lời phải là một đoạn văn bản (span) được lấy NGUYÊN VĂN từ "Đoạn văn". Không được thay đổi từ ngữ, hay thêm từ ngữ. Đặc biệt là các tên riêng hay thuật ngữ, số liệu, thời gian phải giữ nguyên.
 2. Nếu thông tin không có trong "Đoạn văn", hãy trả về chuỗi rỗng "" (không viết gì cả).
 3. Câu trả lời được trích ra phải chính xác như được hiển thị trong đoạn văn về format và độ dài, bao gồm cả cụm đầy đủ xung quanh nó trong đoạn văn để tạo thành một câu trả lời có ý nghĩa chứ không phải lấy riêng cụm từ có câu trả lời. Không thêm bất kỳ từ ngữ nào khác.
-4. Câu hỏi có thể hỏi ngoài lề, tuy có một số thông tin trong câu hỏi có thể liên quan đến đoạn văn nhưng KHÔNG PHẢI LÀ CÂU TRẢ LỜI. Hãy cẩn thận.
+4. Không lặp lại hay sử dụng các từ ngữ trong câu hỏi làm câu dẫn dắt tới câu trả lời.
 """
 # Dữ liệu Few-shot mẫu
 FEW_SHOT_EXAMPLES_DATA = [
@@ -202,7 +202,7 @@ def main():
             for sample, raw_text in zip(batch_samples, decoded_sequences):
                 # LOGIC LÀM SẠCH KẾT QUẢ
                 
-                # 1. Tách phần prompt
+                # 1. Tách phần prompt (Logic cắt chuỗi)
                 if "assistant" in raw_text:
                     clean_answer = raw_text.rpartition("assistant")[2] 
                 elif "Trả lời:" in raw_text:
@@ -210,17 +210,21 @@ def main():
                 else:
                     clean_answer = raw_text
 
-                # 2. Xử lý xuống dòng & khoảng trắng
+                # 2. Xóa sạch các thẻ <|...|> bị leak 
+                # Đoạn này sẽ biến "<|im_start|> system" thành " system"
+                clean_answer = re.sub(r"<\|.*?\|>", "", clean_answer)
+
+                # 3. Xử lý xuống dòng & khoảng trắng
                 clean_answer = clean_answer.strip()
                 if '\n' in clean_answer:
                     clean_answer = clean_answer.split('\n')[0]
                 
-                # 3. FIX LỖI "SYSTEM": Nếu kết quả chỉ còn trơ trọi chữ "system" -> Coi như rỗng
-                # (Vì model lỡ sinh ra thẻ <|im_start|>system)
+                # 4. FIX LỖI "SYSTEM": 
+                # Sau khi xóa thẻ <|...|>, nếu chỉ còn trơ lại chữ "system" -> Xóa
                 if clean_answer.lower().strip() == "system":
                     clean_answer = ""
 
-                # 4. Loại bỏ các prefix rác khác
+                # 5. Loại bỏ các prefix rác (Answer:, Câu trả lời là:...)
                 remove_prefixes = ["Câu trả lời là:", "Answer:", "Đáp án:", ":"]
                 for prefix in remove_prefixes:
                     if clean_answer.lower().startswith(prefix.lower()):
@@ -229,8 +233,8 @@ def main():
                 # Lưu kết quả
                 predictions[sample['id']] = clean_answer
                 
-                # In ra để kiểm tra
-                # if clean_answer: 
+                # In ra kiểm tra (nếu không rỗng)
+                # if clean_answer:
                 print(f"ID: {sample['id']} | Ans : {clean_answer}")
                 
             pbar.update(len(batch_samples))
