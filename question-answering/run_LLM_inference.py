@@ -119,6 +119,15 @@ def call_gpt_api(context, question, model_name='gpt-4o-mini', mode='zero-shot', 
         if '\n' in answer:
             answer = answer.split('\n')[0]
         
+        # Clean up: Nếu model trả về "", '', hoặc các biến thể → convert thành empty string
+        answer = answer.strip()
+        # Xóa tất cả dấu ngoặc kép xung quanh nếu chỉ có ngoặc kép
+        if answer in ['""', "''", '\"\"', "\'\'", '""', "''", '`', '``', '""']:
+            answer = ""
+        # Xử lý thêm: nếu toàn bộ chuỗi chỉ chứa dấu ngoặc kép hoặc khoảng trắng
+        if answer.replace('"', '').replace("'", '').replace(' ', '') == '':
+            answer = ""
+        
         return answer
         
     except Exception as e:
@@ -416,6 +425,14 @@ def main():
                 for prefix in remove_prefixes:
                     if clean_answer.lower().startswith(prefix.lower()):
                         clean_answer = clean_answer[len(prefix):].strip()
+                
+                # 7. Chuẩn hóa chuỗi rỗng (FIX: đảm bảo nhất quán)
+                clean_answer = clean_answer.strip()
+                if clean_answer in ['""', "''", '\"\"', "\'\'", '""', "''", '`', '``', '""']:
+                    clean_answer = ""
+                # Xử lý thêm: nếu toàn bộ chuỗi chỉ chứa dấu ngoặc kép hoặc khoảng trắng
+                if clean_answer.replace('"', '').replace("'", '').replace(' ', '') == '':
+                    clean_answer = ""
 
                 # Lưu kết quả
                 predictions[sample['id']] = clean_answer
