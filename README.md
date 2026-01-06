@@ -40,7 +40,7 @@ Nhóm này bao gồm các mô hình BERT-based được huấn luyện lại to�
 
 Nhóm này thực hiện suy luận (inference) trực tiếp mà không cập nhật trọng số, sử dụng kỹ thuật In-context Learning.
 
-**Note:** Ở mô hình GPT-4o-mini do vấn đề về kinh phí cho API nên chúng tôi chỉ thực hiện kịch bản Zero-shot.
+**Note:** Ở mô hình GPT-4.1-mini do vấn đề về kinh phí cho API nên chúng tôi chỉ thực hiện kịch bản Zero-shot.
 
 | Mô hình | Kịch bản (Scenario) | Exact Match (EM) | F1-Score | Ghi chú |
 |---|---|---|---|---|
@@ -48,20 +48,20 @@ Nhóm này thực hiện suy luận (inference) trực tiếp mà không cập n
 | Vinallama-2.7B-chat | Few-shot (3 examples) | 16.65 | 35.02 | Tăng nhẹ +1.54% F1 nhờ có ví dụ mẫu. |
 | Qwen1.5-4B-Chat | Zero-shot | 16.03 | 35.08 | Cao hơn Vinallama ở mức Zero-shot. |
 | Qwen1.5-4B-Chat | Few-shot (3 examples) | 16.24 | 38.01 | Tăng +2.93% F1, học từ ngữ cảnh tốt hơn Vinallama. |
-| GPT-4o-mini | Zero-shot | 41.95 | 62.61 | Vượt trội hoàn toàn, F1 cao hơn cả Fine-tuning (+3.6%). |
+| GPT-4.1-mini | Zero-shot | 41.95 | 62.61 | Vượt trội hoàn toàn, F1 cao hơn cả Fine-tuning (+3.6%). |
 
 **Nhận xét:**
 - **Hiệu quả của Few-shot:** Cả hai mô hình mã nguồn mở (Vinallama và Qwen) đều cho thấy sự cải thiện khi chuyển từ Zero-shot sang Few-shot.
   - Vinallama F1 từ 33.48 lên 35.02.
   - Qwen tăng F1 từ 35.08 lên 38.01.
-- **So sánh Open-source vs. Commercial:** GPT-4o-mini vượt trội hoàn toàn so với các mô hình nhỏ (2.7B, 4B) với F1-Score đạt 62.61, thậm chí cao hơn F1 của phương pháp Fine-tuning tốt nhất (XLM-R đạt 59.02).
+- **So sánh Open-source vs. Commercial:** GPT-4.1-mini vượt trội hoàn toàn so với các mô hình nhỏ (2.7B, 4B) với F1-Score đạt 62.61, thậm chí cao hơn F1 của phương pháp Fine-tuning tốt nhất (XLM-R đạt 59.02).
 
 ## 3. Phân tích và Thảo luận
 
 ### 3.1. So sánh chiến lược huấn luyện
 
 - **Fine-tuning (XLM-R):** Đạt độ chính xác tuyệt đối (EM) cao nhất trong tất cả các thí nghiệm (48.65). Điều này cho thấy việc huấn luyện chuyên sâu giúp mô hình học được chính xác ranh giới của câu trả lời (start/end tokens).
-- **Prompting (GPT-4o-mini):** Mặc dù EM thấp hơn XLM-R (41.95 so với 48.65), nhưng F1-Score lại cao hơn (62.61 so với 59.02). Điều này ngụ ý rằng GPT-4o-mini tìm được nội dung câu trả lời đúng nhưng thường có xu hướng thừa hoặc thiếu một vài từ ngữ xung quanh so với đáp án chuẩn, dẫn đến EM thấp hơn nhưng độ chồng lắp (overlap) cao.
+- **Prompting (GPT-4.1-mini):** Mặc dù EM thấp hơn XLM-R (41.95 so với 48.65), nhưng F1-Score lại cao hơn (62.61 so với 59.02). Điều này ngụ ý rằng GPT-4.1-mini tìm được nội dung câu trả lời đúng nhưng thường có xu hướng thừa hoặc thiếu một vài từ ngữ xung quanh so với đáp án chuẩn, dẫn đến EM thấp hơn nhưng độ chồng lắp (overlap) cao.
 
 ### 3.2. Về các mô hình nhỏ (Vinallama, Qwen)
 
@@ -72,5 +72,5 @@ Các mô hình kích thước nhỏ (dưới 4B tham số) gặp khó khăn tron
 Qua quá trình thực nghiệm, có thể rút ra các kết luận sau:
 
 1. **Đối với bài toán yêu cầu độ chính xác tuyệt đối về vị trí trích xuất:** Fine-tuning XLM-RoBERTa là lựa chọn tốt nhất (EM 48.65).
-2. **Nếu xét về khả năng hiểu ngữ nghĩa tổng quát và linh hoạt mà không cần huấn luyện lại:** GPT-4o-mini cho kết quả F1 ấn tượng nhất (62.61).
+2. **Nếu xét về khả năng hiểu ngữ nghĩa tổng quát và linh hoạt mà không cần huấn luyện lại:** GPT-4.1-mini cho kết quả F1 ấn tượng nhất (62.61).
 3. **Kỹ thuật Few-shot prompting** chứng minh được hiệu quả trong việc cải thiện độ chính xác cho các mô hình mã nguồn mở cỡ nhỏ, giúp định hướng mô hình trả về kết quả đúng định dạng hơn.
