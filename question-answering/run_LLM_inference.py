@@ -260,11 +260,11 @@ def main():
                             predictions[sample['id']] = ""
                     
                     # In kết quả của batch này theo đúng thứ tự
-                    print(f"\n--- Batch results ({len(batch_samples)} samples) ---", flush=True)
-                    for sample in batch_samples:
-                        answer = predictions.get(sample['id'], "")
-                        # In tất cả kết quả, kể cả rỗng
-                        print(f"ID: {sample['id']} | Ans: {answer}", flush=True)
+                    # print(f"\n--- Batch results ({len(batch_samples)} samples) ---", flush=True)
+                    # for sample in batch_samples:
+                    #     answer = predictions.get(sample['id'], "")
+                    #     # In tất cả kết quả, kể cả rỗng
+                    #     print(f"ID: {sample['id']} | Ans: {answer}", flush=True)
                     
                     # Update progress bar một lần cho cả batch
                     pbar.update(len(batch_samples))
