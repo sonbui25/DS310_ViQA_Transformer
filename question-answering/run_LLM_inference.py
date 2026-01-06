@@ -250,7 +250,7 @@ def main():
                             print(f"\nError processing sample {sample['id']}: {e}")
                             predictions[sample['id']] = ""
                     
-                    In kết quả của batch này theo đúng thứ tự
+                    # In kết quả của batch này theo đúng thứ tự
                     print(f"\n--- Batch results ({len(batch_samples)} samples) ---", flush=True)
                     for sample in batch_samples:
                         answer = predictions.get(sample['id'], "")
