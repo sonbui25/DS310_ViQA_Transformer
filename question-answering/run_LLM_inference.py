@@ -6,6 +6,7 @@ import re # Thêm thư viện này để xử lý chuỗi tốt hơn
 from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig
 from tqdm import tqdm
 from openai import OpenAI # Import OpenAI client cho GPT-4o mini
+from concurrent.futures import ThreadPoolExecutor, as_completed # Để xử lý batch cho GPT API
 
 # ==============================================================================
 # PHẦN 1: CẤU HÌNH PROMPT (GIỮ NGUYÊN NỘI DUNG CỦA USER)
@@ -199,19 +200,40 @@ def main():
         print(f"Đã load {len(all_samples)} mẫu dữ liệu.")
         
         predictions = {}
-        print(f"Bắt đầu dự đoán với GPT-4o mini ({args.mode})...")
+        print(f"Bắt đầu dự đoán với GPT-4o mini ({args.mode}) - batch_size: {args.batch_size}...")
         
+        # Xử lý theo batch với concurrent requests
         with tqdm(total=len(all_samples)) as pbar:
-            for sample in all_samples:
-                answer = call_gpt4o_mini(
-                    context=sample['context'],
-                    question=sample['question'],
-                    mode=args.mode,
-                    num_shots=args.num_shots,
-                    api_key=args.openai_api_key
-                )
-                predictions[sample['id']] = answer
-                pbar.update(1)
+            for i in range(0, len(all_samples), args.batch_size):
+                batch_samples = all_samples[i:i + args.batch_size]
+                
+                # Sử dụng ThreadPoolExecutor để gọi API song song
+                with ThreadPoolExecutor(max_workers=args.batch_size) as executor:
+                    # Submit tất cả requests trong batch
+                    future_to_sample = {
+                        executor.submit(
+                            call_gpt4o_mini,
+                            sample['context'],
+                            sample['question'],
+                            args.mode,
+                            args.num_shots,
+                            args.openai_api_key
+                        ): sample
+                        for sample in batch_samples
+                    }
+                    
+                    # Lấy kết quả khi hoàn thành
+                    for future in as_completed(future_to_sample):
+                        sample = future_to_sample[future]
+                        try:
+                            answer = future.result()
+                            predictions[sample['id']] = answer
+                            print(f"ID: {sample['id']} | Ans : {answer}")
+                        except Exception as e:
+                            print(f"\nError processing sample {sample['id']}: {e}")
+                            predictions[sample['id']] = ""
+                        
+                        pbar.update(1)
         
         # Lưu kết quả
         print(f"\nLưu file: {args.output_file}")
