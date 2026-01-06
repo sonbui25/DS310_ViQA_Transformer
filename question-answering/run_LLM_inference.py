@@ -80,6 +80,7 @@ def call_gpt_api(context, question, model_name='gpt-4o-mini', mode='zero-shot', 
             for ex in examples:
                 few_shot_content += f"Đoạn văn: {ex['context']}\nCâu hỏi: {ex['question']}\nTrả lời: {ex['answer_text']}\n\n"
             messages.append({"role": "user", "content": few_shot_content})
+            messages.append({"role": "assistant", "content": "Tôi hiểu rồi. Tôi sẽ trích xuất câu trả lời từ đoạn văn theo đúng quy tắc."})
         
         # Thêm câu hỏi hiện tại
         user_message = f"Đoạn văn: {context}\nCâu hỏi: {question}\nTrả lời:"
