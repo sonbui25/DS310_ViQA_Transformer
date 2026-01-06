@@ -5,6 +5,7 @@ import os
 import re # Thêm thư viện này để xử lý chuỗi tốt hơn
 from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig
 from tqdm import tqdm
+from openai import OpenAI # Import OpenAI client cho GPT-4o mini
 
 # ==============================================================================
 # PHẦN 1: CẤU HÌNH PROMPT (GIỮ NGUYÊN NỘI DUNG CỦA USER)
@@ -46,6 +47,66 @@ FEW_SHOT_EXAMPLES_DATA = [
 # ==============================================================================
 # PHẦN 2: CÁC HÀM HỖ TRỢ XỬ LÝ PROMPT
 # ==============================================================================
+
+def call_gpt4o_mini(context, question, mode='zero-shot', num_shots=3, api_key=None):
+    """
+    Gọi GPT-4o mini API để trả lời câu hỏi QA
+    
+    Args:
+        context: Đoạn văn bản
+        question: Câu hỏi
+        mode: 'zero-shot' hoặc 'few-shot'
+        num_shots: Số lượng ví dụ few-shot (nếu mode='few-shot')
+        api_key: OpenAI API key
+    
+    Returns:
+        str: Câu trả lời
+    """
+    try:
+        client = OpenAI(api_key=api_key)
+        
+        # Xây dựng messages
+        messages = [
+            {"role": "system", "content": SYSTEM_INSTRUCTION}
+        ]
+        
+        # Thêm few-shot examples nếu cần
+        if mode == 'few-shot':
+            examples = FEW_SHOT_EXAMPLES_DATA[:num_shots]
+            few_shot_content = ""
+            for ex in examples:
+                few_shot_content += f"Đoạn văn: {ex['context']}\nCâu hỏi: {ex['question']}\nTrả lời: {ex['answer_text']}\n\n"
+            messages.append({"role": "user", "content": few_shot_content})
+        
+        # Thêm câu hỏi hiện tại
+        user_message = f"Đoạn văn: {context}\nCâu hỏi: {question}\nTrả lời:"
+        messages.append({"role": "user", "content": user_message})
+        
+        # Gọi API
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+            max_tokens=128,
+            temperature=0
+        )
+        
+        answer = response.choices[0].message.content.strip()
+        
+        # Làm sạch kết quả
+        stop_phrases = ["Đoạn văn:", "Câu hỏi:", "Context:", "Question:"]
+        for phrase in stop_phrases:
+            if phrase in answer:
+                answer = answer.split(phrase)[0]
+        
+        answer = answer.strip()
+        if '\n' in answer:
+            answer = answer.split('\n')[0]
+            
+        return answer
+        
+    except Exception as e:
+        print(f"Error calling GPT-4o mini API: {e}")
+        return ""
 
 def build_prompt(mode, context, question, model_name, num_shots=3):
     """
@@ -92,8 +153,75 @@ def main():
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--auth_token", type=str, default=None)
     parser.add_argument("--multi_gpu", action="store_true")
+    parser.add_argument("--use_gpt4o", action="store_true", help="Sử dụng GPT-4o mini API thay vì local model")
+    parser.add_argument("--openai_api_key", type=str, default=None, help="OpenAI API key (bắt buộc nếu dùng --use_gpt4o)")
     args = parser.parse_args()
 
+    # ==============================================================================
+    # PHẦN: XỬ LÝ GPT-4O MINI API
+    # ==============================================================================
+    if args.use_gpt4o:
+        if not args.openai_api_key:
+            # Thử lấy từ biến môi trường
+            args.openai_api_key = os.environ.get("OPENAI_API_KEY")
+            if not args.openai_api_key:
+                print("ERROR: --openai_api_key bắt buộc khi dùng --use_gpt4o hoặc đặt biến môi trường OPENAI_API_KEY")
+                return
+        
+        print("Sử dụng GPT-4o mini API mode")
+        
+        # Load data
+        print(f"Loading data from: {args.test_file}")
+        with open(args.test_file, 'r', encoding='utf-8') as f:
+            raw_data = json.load(f)
+
+        all_samples = []
+        if isinstance(raw_data, dict) and 'data' in raw_data:
+            data_list = raw_data['data']
+            if len(data_list) > 0:
+                first_item = data_list[0]
+                if 'paragraphs' in first_item:
+                    for article in data_list:
+                        for paragraph in article['paragraphs']:
+                            context = paragraph['context']
+                            for qa in paragraph['qas']:
+                                all_samples.append({
+                                    "id": qa['id'], "context": context, "question": qa['question']
+                                })
+                else:
+                    for item in data_list:
+                        all_samples.append({
+                            "id": item['id'], "context": item['context'], "question": item['question']
+                        })
+        elif isinstance(raw_data, list):
+            all_samples = raw_data
+
+        print(f"Đã load {len(all_samples)} mẫu dữ liệu.")
+        
+        predictions = {}
+        print(f"Bắt đầu dự đoán với GPT-4o mini ({args.mode})...")
+        
+        with tqdm(total=len(all_samples)) as pbar:
+            for sample in all_samples:
+                answer = call_gpt4o_mini(
+                    context=sample['context'],
+                    question=sample['question'],
+                    mode=args.mode,
+                    num_shots=args.num_shots,
+                    api_key=args.openai_api_key
+                )
+                predictions[sample['id']] = answer
+                pbar.update(1)
+        
+        # Lưu kết quả
+        print(f"\nLưu file: {args.output_file}")
+        with open(args.output_file, 'w', encoding='utf-8') as f:
+            json.dump(predictions, f, ensure_ascii=False, indent=4)
+        
+        return
+
+    # PHẦN: LOCAL MODEL
+    
     # 1. Load Tokenizer & Config
     print(f"Loading tokenizer: {args.model_name}")
     try:
@@ -200,7 +328,7 @@ def main():
             decoded_sequences = tokenizer.batch_decode(outputs, skip_special_tokens=True)
             
             for sample, raw_text in zip(batch_samples, decoded_sequences):
-                # --- LOGIC LÀM SẠCH KẾT QUẢ (FINAL V3 - CHỐNG TRÀN) ---
+                # ---LOGIC LÀM SẠCH KẾT QUẢ---
                 
                 # 1. Tách phần prompt (Logic cắt chuỗi cơ bản)
                 if "assistant" in raw_text:
@@ -210,7 +338,7 @@ def main():
                 else:
                     clean_answer = raw_text
 
-                # 2. [QUAN TRỌNG] Cắt bỏ phần "Đoạn văn:" bịa thêm
+                # 2. Cắt bỏ phần "Đoạn văn:" bịa thêm
                 # Nếu model viết tiếp "Đoạn văn: ...", ta cắt bỏ từ đó trở đi
                 stop_phrases = ["Đoạn văn:", "Câu hỏi:", "Context:", "Question:", "Quy tắc bắt buộc:"]
                 for phrase in stop_phrases:
