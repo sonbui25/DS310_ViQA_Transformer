@@ -108,8 +108,6 @@ def call_gpt_api(context, question, model_name='gpt-4o-mini', mode='zero-shot', 
         
         answer = response.choices[0].message.content.strip()
         
-        # DEBUG: In câu trả lời thô để kiểm tra
-        print(f"[RAW] {answer[:100]}")
         
         # Làm sạch kết quả
         stop_phrases = ["Đoạn văn:", "Câu hỏi:", "Context:", "Question:"]
@@ -121,9 +119,6 @@ def call_gpt_api(context, question, model_name='gpt-4o-mini', mode='zero-shot', 
         if '\n' in answer:
             answer = answer.split('\n')[0]
         
-        # DEBUG: In kết quả sau làm sạch
-        print(f"[CLEAN] {answer[:100]}")
-            
         return answer
         
     except Exception as e:
