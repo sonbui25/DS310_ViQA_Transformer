@@ -87,15 +87,20 @@ def call_gpt_api(context, question, model_name='gpt-4o-mini', mode='zero-shot', 
         # Gọi API
         api_params = {
             "model": model_name,
-            "messages": messages,
-            "temperature": 0
+            "messages": messages
         }
         
         # Kiểm tra model để chọn parameter phù hợp
-        if 'gpt-5' in model_name or 'gpt-4o' in model_name:
+        if 'gpt-5' in model_name:
+            # GPT-5 không hỗ trợ temperature=0, phải dùng mặc định (1) hoặc giá trị khác
             api_params["max_completion_tokens"] = 128
+            # Không set temperature, để dùng mặc định của model
+        elif 'gpt-4o' in model_name:
+            api_params["max_completion_tokens"] = 128
+            api_params["temperature"] = 0
         else:
             api_params["max_tokens"] = 128
+            api_params["temperature"] = 0
         
         response = client.chat.completions.create(**api_params)
         
