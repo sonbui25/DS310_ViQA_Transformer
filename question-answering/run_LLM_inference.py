@@ -85,7 +85,6 @@ def call_gpt_api(context, question, model_name='gpt-4o-mini', mode='zero-shot', 
         messages.append({"role": "user", "content": user_message})
         
         # Gọi API
-        # Các model mới (gpt-4o, gpt-5) dùng max_completion_tokens, các model cũ dùng max_tokens
         api_params = {
             "model": model_name,
             "messages": messages,
